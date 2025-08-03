@@ -155,6 +155,31 @@ function authorizeRequest(token, res) {
     }
 }
 
+/*
+    In computing, a cookie (also known as a web cookie, browser cookie, or HTTP cookie) is a small piece of data that a website stores on a user's computer or mobile device to remember information about that user. This information can be used to personalize the user's browsing experience, track their activity, or maintain session information. Essentially, cookies enable websites to "remember" users and their preferences, making it easier to navigate and use the site. 
+
+    Here's a more detailed explanation:
+    What they do:
+    Personalization:
+    Cookies can store user preferences, such as language settings, login information, or items in a shopping cart, so the website can remember these settings for future visits. 
+
+    Tracking:
+    Websites use cookies to track user behavior, such as the pages visited, links clicked, and time spent on the site. This data is often used for analytics and advertising purposes. 
+
+    Session Management:
+    Cookies can store session IDs, which are used to identify a user's session on a website. This allows the website to keep track of user activity within a single session. 
+
+    Types of cookies:
+    First-party cookies: Cookies set by the website you are currently visiting. 
+
+    Third-party cookies: Cookies set by a domain different from the website you are visiting, often used by advertisers to track users across multiple sites. 
+
+    Session cookies: Temporary cookies that expire when you close your browser. 
+
+    Persistent cookies: Cookies that remain on your device for a set period of time, even after you close your browser. 
+*/
+
+// This route validates the user and stores JWT Token in a cookie 
 app.post('/cookie/login', (req, res) => {
     const payload = req.body;
     console.log(req.body);
@@ -162,6 +187,9 @@ app.post('/cookie/login', (req, res) => {
         const user = users[index];
         if (user.userId === payload.userId && user.password === payload.password) {
             const token = jwt.sign(payload, secretKey, { expiresIn: "1hr" });
+
+            // This method creates a cookie containing the JWT Token and it is a HttpOnly cookie means Js can't do anything about this and it is secure.
+            // maxAge is the life of the cookie, it is given in milliseconds.
             res.cookie("token", token, {
                 httpOnly: true,
                 maxAge: 3600000
@@ -173,9 +201,15 @@ app.post('/cookie/login', (req, res) => {
     res.status(404).json({ msg: "User Not Found!!" });
 });
 
+// This route returns a welcome message if the user is valid by using JWT Token through cookie.
 app.get('/cookie/protected', (req, res) => {
+
+    // Here, we have retrieved the token from the cookie.
+    // For cookie retrieval we have used 'cookie-parser' module so that we can parse cookie from the header.
     const token = req.cookies.token;
     if (!token) return res.sendStatus(401);
+
+    // Here, we are verifying the JWT Token, if the token is valid it sends a welcome message response else it responds with an error
     jwt.verify(token, secretKey, (err, payload) => {
         if (err) return res.status(401).json({ msg: err });
         console.log("payload", payload);
