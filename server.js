@@ -2,8 +2,11 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 app.use(cors());
+app.use(cookieParser());
+app.use(express.json());
 
 const users = [
     {
@@ -151,5 +154,33 @@ function authorizeRequest(token, res) {
         });
     }
 }
+
+app.post('/cookie/login', (req, res) => {
+    const payload = req.body;
+    console.log(req.body);
+    for (let index = 0; index < users.length; index++) {
+        const user = users[index];
+        if (user.userId === payload.userId && user.password === payload.password) {
+            const token = jwt.sign(payload, secretKey, { expiresIn: "1hr" });
+            res.cookie("token", token, {
+                httpOnly: true,
+                maxAge: 3600000
+            });
+            res.status(200).json({ token: token, msg: "User loggedin successfully" });
+            return;
+        }
+    }
+    res.status(404).json({ msg: "User Not Found!!" });
+});
+
+app.get('/cookie/protected', (req, res) => {
+    const token = req.cookies.token;
+    if (!token) return res.sendStatus(401);
+    jwt.verify(token, secretKey, (err, payload) => {
+        if (err) return res.status(401).json({ msg: err });
+        console.log("payload", payload);
+        res.status(200).json({ msg: `Welcome ${payload.userId}` });
+    });
+});
 
 app.listen(5000, () => console.log("Server started"));
